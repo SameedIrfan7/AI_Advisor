@@ -1,5 +1,6 @@
 import streamlit as st
 import pickle
+import os  # Import os for file path operations
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -9,6 +10,9 @@ from langchain.callbacks import get_openai_callback
 import openai
 import pandas as pd
 from PyPDF2 import PdfReader
+
+# Set page configuration as the first Streamlit command
+st.set_page_config(page_title="AI Academic Advisor", page_icon="🎓", layout="wide")
 
 # Access the OpenAI API key from Streamlit secrets
 api_key = st.secrets["general"]["OPENAI_API_KEY"]
@@ -50,8 +54,6 @@ def extract_course_codes_rag(vectorstore):
     return [code.strip() for code in response.split(',')]
 
 def main():
-    st.set_page_config(page_title="AI Academic Advisor", page_icon="🎓", layout="wide")
-
     st.title("AI Academic Advisor")
     st.markdown("Your virtual guide to academic planning!")
 
