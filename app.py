@@ -18,12 +18,7 @@ api_key = os.getenv("OPENAI_API_KEY") or st.secrets["general"]["OPENAI_API_KEY"]
 
 # Test API Key directly
 openai.api_key = api_key
-try:
-    response = openai.Model.list()
-    print("API Key is valid.")
-except openai.error.AuthenticationError:
-    print("Invalid API Key.")
-    raise
+
 
 def create_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(
