@@ -1,6 +1,6 @@
 import streamlit as st
 import pickle
-import os  # Import os for file path operations
+import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -46,6 +46,7 @@ def extract_course_codes_rag(vectorstore):
 
     query = "Extract and list all course codes from this transcript. Course codes typically consist of 2-4 uppercase letters followed by a space and 3-4 digits, like 'PHIL 1145' or 'CS 5800'. Provide only the list of course codes, separated by commas."
 
+    # Perform similarity search
     docs = vectorstore.similarity_search(query=query, k=3)
 
     with get_openai_callback() as cb:
