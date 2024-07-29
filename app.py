@@ -48,10 +48,7 @@ def extract_course_codes_rag(chunks, index):
     vector = np.array([embedding], dtype=np.float32)
 
     k = 3  # Number of nearest neighbors to retrieve
-    distances = np.zeros((vector.shape[0], k), dtype=np.float32)
-    labels = np.zeros((vector.shape[0], k), dtype=np.int64)
-
-    index.search(vector, k, distances, labels)
+    distances, labels = index.search(vector, k)
     docs = [chunks[i] for i in labels[0] if i != -1]
 
     with get_openai_callback() as cb:
@@ -161,7 +158,13 @@ Remember to balance the technical computer science courses with general educatio
 
 Start directly with the course list for Year 1, Semester 1 without any introductory text."""
 
-        docs = [chunks[i] for i in VectorStore.search(np.array([OpenAIEmbeddings(openai_api_key=api_key).embed(prompt)]).astype(np.float32), k=3)[1][0] if i != -1]
+        embedding = OpenAIEmbeddings(openai_api_key=api_key).embed(prompt)
+        vector = np.array([embedding], dtype=np.float32)
+
+        k = 3  # Number of nearest neighbors to retrieve
+        distances, labels = VectorStore.search(vector, k)
+        docs = [chunks[i] for i in labels[0] if i != -1]
+
         llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
         chain = load_qa_chain(llm=llm, chain_type="stuff")
 
