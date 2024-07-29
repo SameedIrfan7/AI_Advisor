@@ -11,8 +11,6 @@ import os
 import openai
 import pandas as pd
 from PyPDF2 import PdfReader
-import numpy as np
-import faiss
 
 # Load API key from environment or Streamlit secrets
 load_dotenv()  # This loads the .env file if you're using one
@@ -20,6 +18,7 @@ api_key = os.getenv("OPENAI_API_KEY") or st.secrets["general"]["OPENAI_API_KEY"]
 
 # Test API Key directly
 openai.api_key = api_key
+
 
 def create_vectorstore(text):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -30,26 +29,16 @@ def create_vectorstore(text):
     chunks = text_splitter.split_text(text=text)
 
     embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-    vectors = [embeddings.embed(chunk) for chunk in chunks]
+    vectorstore = FAISS.from_texts(chunks, embedding=embeddings)
+    return vectorstore
 
-    dimension = len(vectors[0])
-    index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(vectors).astype(np.float32))
-
-    return chunks, index
-
-def extract_course_codes_rag(chunks, index):
+def extract_course_codes_rag(vectorstore):
     llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
     chain = load_qa_chain(llm=llm, chain_type="stuff")
 
     query = "Extract and list all course codes from this transcript. Course codes typically consist of 2-4 uppercase letters followed by a space and 3-4 digits, like 'PHIL 1145' or 'CS 5800'. Provide only the list of course codes, separated by commas."
 
-    embedding = OpenAIEmbeddings(openai_api_key=api_key).embed(query)
-    vector = np.array([embedding], dtype=np.float32)
-
-    k = 3  # Number of nearest neighbors to retrieve
-    distances, labels = index.search(vector, k)
-    docs = [chunks[i] for i in labels[0] if i != -1]
+    docs = vectorstore.similarity_search(query=query, k=3)
 
     with get_openai_callback() as cb:
         response = chain.run(input_documents=docs, question=query)
@@ -86,10 +75,10 @@ def main():
             text += page.extract_text()
 
         # Create a vectorstore from the transcript text
-        chunks, transcript_index = create_vectorstore(text)
+        transcript_vectorstore = create_vectorstore(text)
 
         # Extract course codes using RAG
-        courses_taken = extract_course_codes_rag(chunks, transcript_index)
+        courses_taken = extract_course_codes_rag(transcript_vectorstore)
 
         st.sidebar.success(f"Extracted {len(courses_taken)} course codes from your transcript.")
 
@@ -121,11 +110,11 @@ def main():
 
     if os.path.exists(f"{store_name}.pkl"):
         with open(f"{store_name}.pkl", "rb") as f:
-            chunks, VectorStore = pickle.load(f)
+            VectorStore = pickle.load(f)
     else:
-        chunks, VectorStore = create_vectorstore(text)
+        VectorStore = create_vectorstore(text)
         with open(f"{store_name}.pkl", "wb") as f:
-            pickle.dump((chunks, VectorStore), f)
+            pickle.dump(VectorStore, f)
 
     if st.sidebar.button("Generate Course Plan"):
         if not courses_taken:
@@ -158,13 +147,7 @@ Remember to balance the technical computer science courses with general educatio
 
 Start directly with the course list for Year 1, Semester 1 without any introductory text."""
 
-        embedding = OpenAIEmbeddings(openai_api_key=api_key).embed(prompt)
-        vector = np.array([embedding], dtype=np.float32)
-
-        k = 3  # Number of nearest neighbors to retrieve
-        distances, labels = VectorStore.search(vector, k)
-        docs = [chunks[i] for i in labels[0] if i != -1]
-
+        docs = VectorStore.similarity_search(query=prompt, k=3)
         llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
         chain = load_qa_chain(llm=llm, chain_type="stuff")
 
