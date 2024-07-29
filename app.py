@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 import pickle
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -7,22 +6,22 @@ from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.callbacks import get_openai_callback
-import os
 import openai
 import pandas as pd
 from PyPDF2 import PdfReader
 
-# Load environment variables
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+# Access the OpenAI API key from Streamlit secrets
+api_key = st.secrets["general"]["OPENAI_API_KEY"]
+
+# Set API key for OpenAI
+openai.api_key = api_key
 
 # Test API Key directly
-openai.api_key = api_key
 try:
     response = openai.Model.list()
-    print("API Key is valid.")
+    st.write("API Key is valid.")
 except openai.error.AuthenticationError:
-    print("Invalid API Key.")
+    st.error("Invalid API Key.")
     raise
 
 def create_vectorstore(text):
