@@ -12,8 +12,9 @@ import openai
 import pandas as pd
 from PyPDF2 import PdfReader
 
-
-api_key = st.secrets["general"]["OPENAI_API_KEY"]
+# Load API key from environment or Streamlit secrets
+load_dotenv()  # This loads the .env file if you're using one
+api_key = os.getenv("OPENAI_API_KEY") or st.secrets["general"]["OPENAI_API_KEY"]
 
 # Test API Key directly
 openai.api_key = api_key
@@ -37,7 +38,7 @@ def create_vectorstore(text):
     return vectorstore
 
 def extract_course_codes_rag(vectorstore):
-    llm = ChatOpenAI(model_name="gpt-4-1106-preview",openai_api_key=api_key)
+    llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
     chain = load_qa_chain(llm=llm, chain_type="stuff")
 
     query = "Extract and list all course codes from this transcript. Course codes typically consist of 2-4 uppercase letters followed by a space and 3-4 digits, like 'PHIL 1145' or 'CS 5800'. Provide only the list of course codes, separated by commas."
@@ -152,7 +153,7 @@ Remember to balance the technical computer science courses with general educatio
 Start directly with the course list for Year 1, Semester 1 without any introductory text."""
 
         docs = VectorStore.similarity_search(query=prompt, k=3)
-        llm = ChatOpenAI(model_name="gpt-4-1106-preview")
+        llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
         chain = load_qa_chain(llm=llm, chain_type="stuff")
 
         with st.spinner("Generating your personalized course plan..."):
