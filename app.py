@@ -1,31 +1,27 @@
 import streamlit as st
+from dotenv import load_dotenv
 import pickle
-import os
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.callbacks import get_openai_callback
+import os
 import openai
 import pandas as pd
 from PyPDF2 import PdfReader
 
-# Set page configuration as the first Streamlit command
-st.set_page_config(page_title="AI Academic Advisor", page_icon="🎓", layout="wide")
 
-# Access the OpenAI API key from Streamlit secrets
 api_key = st.secrets["general"]["OPENAI_API_KEY"]
 
-# Set API key for OpenAI
-openai.api_key = api_key
-
 # Test API Key directly
+openai.api_key = api_key
 try:
     response = openai.Model.list()
-    st.write("API Key is valid.")
+    print("API Key is valid.")
 except openai.error.AuthenticationError:
-    st.error("Invalid API Key.")
+    print("Invalid API Key.")
     raise
 
 def create_vectorstore(text):
@@ -41,12 +37,11 @@ def create_vectorstore(text):
     return vectorstore
 
 def extract_course_codes_rag(vectorstore):
-    llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
+    llm = ChatOpenAI(model_name="gpt-4-1106-preview")
     chain = load_qa_chain(llm=llm, chain_type="stuff")
 
     query = "Extract and list all course codes from this transcript. Course codes typically consist of 2-4 uppercase letters followed by a space and 3-4 digits, like 'PHIL 1145' or 'CS 5800'. Provide only the list of course codes, separated by commas."
 
-    # Perform similarity search
     docs = vectorstore.similarity_search(query=query, k=3)
 
     with get_openai_callback() as cb:
@@ -55,6 +50,8 @@ def extract_course_codes_rag(vectorstore):
     return [code.strip() for code in response.split(',')]
 
 def main():
+    st.set_page_config(page_title="AI Academic Advisor", page_icon="🎓", layout="wide")
+
     st.title("AI Academic Advisor")
     st.markdown("Your virtual guide to academic planning!")
 
@@ -155,7 +152,7 @@ Remember to balance the technical computer science courses with general educatio
 Start directly with the course list for Year 1, Semester 1 without any introductory text."""
 
         docs = VectorStore.similarity_search(query=prompt, k=3)
-        llm = ChatOpenAI(model_name="gpt-4-1106-preview", openai_api_key=api_key)
+        llm = ChatOpenAI(model_name="gpt-4-1106-preview")
         chain = load_qa_chain(llm=llm, chain_type="stuff")
 
         with st.spinner("Generating your personalized course plan..."):
